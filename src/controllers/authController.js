@@ -9,13 +9,11 @@ export const registerUser = async (req, res, next) => {
     if (password.length < 6) return next(new AppError("Password must be at least 6 characters.", 400));
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) return next(new AppError("An account with this email already exists.", 409));
+    if (existingUser) return next(new AppError("An account with this email already exists.", 400));
 
     const user = await User.create({ email, password });
     res.status(201).json({
-      success: true,
-      message: "User registered successfully.",
-      user: { id: user._id, email: user.email, createdAt: user.createdAt },
+      message: "User registered successfully",
     });
   } catch (error) { next(error); }
 };
