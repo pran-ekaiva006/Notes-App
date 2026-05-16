@@ -3,6 +3,10 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
+import swaggerUi from "swagger-ui-express";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import authRoutes from "./routes/authRoutes.js";
 import notesRoutes from "./routes/notesRoutes.js";
@@ -10,7 +14,14 @@ import searchRoutes from "./routes/searchRoutes.js";
 import metaRoutes from "./routes/metaRoutes.js";
 import errorMiddleware from "./middleware/errorMiddleware.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
+
+const openapiPath = path.join(__dirname, "docs", "openapi.json");
+const swaggerDocument = JSON.parse(fs.readFileSync(openapiPath, "utf8"));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Security Middlewares
 app.use(helmet());
