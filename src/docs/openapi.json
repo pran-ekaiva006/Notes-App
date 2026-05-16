@@ -1,0 +1,108 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Notes API",
+    "description": "A multi-user notes service with JWT authentication, CRUD, sharing, search, and pagination.",
+    "version": "1.0.0",
+    "contact": { "name": "Pranjal Kumar Verma", "email": "pranjalkumarverma18@gmail.com" }
+  },
+  "servers": [
+    { "url": "http://localhost:5000", "description": "Local" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    }
+  },
+  "paths": {
+    "/register": {
+      "post": {
+        "summary": "Register a new user",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["email","password"], "properties": { "email": {"type":"string","format":"email"}, "password": {"type":"string","minLength":6} }}}}
+        },
+        "responses": { "201": {"description":"User registered"}, "400": {"description":"Validation error"} }
+      }
+    },
+    "/login": {
+      "post": {
+        "summary": "Login and receive JWT",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["email","password"], "properties": { "email": {"type":"string"}, "password": {"type":"string"} }}}}
+        },
+        "responses": { "200": {"description":"Returns access_token"}, "401": {"description":"Invalid credentials"} }
+      }
+    },
+    "/notes": {
+      "get": {
+        "summary": "Get all notes (paginated, pinned first)",
+        "tags": ["Notes"],
+        "security": [{"BearerAuth":[]}],
+        "parameters": [
+          {"name":"page","in":"query","schema":{"type":"integer","default":1}},
+          {"name":"limit","in":"query","schema":{"type":"integer","default":10}}
+        ],
+        "responses": { "200": {"description":"Paginated notes list"}, "401": {"description":"Unauthorized"} }
+      },
+      "post": {
+        "summary": "Create a new note",
+        "tags": ["Notes"],
+        "security": [{"BearerAuth":[]}],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["title","content"], "properties": { "title": {"type":"string"}, "content": {"type":"string"}, "tags": {"type":"array","items":{"type":"string"}}, "isPinned": {"type":"boolean"} }}}}
+        },
+        "responses": { "201": {"description":"Note created"}, "400": {"description":"Validation error"} }
+      }
+    },
+    "/notes/{id}": {
+      "get": {
+        "summary": "Get a note by ID",
+        "tags": ["Notes"],
+        "security": [{"BearerAuth":[]}],
+        "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],
+        "responses": { "200": {"description":"Note data"}, "403": {"description":"Forbidden"}, "404": {"description":"Not found"} }
+      },
+      "put": {
+        "summary": "Update a note (owner only)",
+        "tags": ["Notes"],
+        "security": [{"BearerAuth":[]}],
+        "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],
+        "requestBody": { "content": { "application/json": { "schema": { "type":"object", "properties": { "title":{"type":"string"}, "content":{"type":"string"}, "tags":{"type":"array","items":{"type":"string"}}, "isPinned":{"type":"boolean"} }}}}},
+        "responses": { "200": {"description":"Updated note"}, "403": {"description":"Forbidden"}, "404": {"description":"Not found"} }
+      },
+      "delete": {
+        "summary": "Delete a note (owner only)",
+        "tags": ["Notes"],
+        "security": [{"BearerAuth":[]}],
+        "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],
+        "responses": { "204": {"description":"Deleted"}, "403": {"description":"Forbidden"}, "404": {"description":"Not found"} }
+      }
+    },
+    "/notes/{id}/share": {
+      "post": {
+        "summary": "Share a note with another user",
+        "tags": ["Notes"],
+        "security": [{"BearerAuth":[]}],
+        "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type":"object", "required":["share_with_email"], "properties": { "share_with_email": {"type":"string","format":"email"} }}}}},
+        "responses": { "200": {"description":"Shared"}, "403": {"description":"Only owner"}, "404": {"description":"Not found"} }
+      }
+    },
+    "/search": {
+      "get": {
+        "summary": "Full-text search notes",
+        "tags": ["Notes"],
+        "security": [{"BearerAuth":[]}],
+        "parameters": [{"name":"q","in":"query","required":true,"schema":{"type":"string"}}],
+        "responses": { "200": {"description":"Search results"}, "400": {"description":"Missing query"} }
+      }
+    },
+    "/about": { "get": { "summary": "About this API", "tags": ["Meta"], "responses": { "200": {"description":"API info"} }}},
+    "/openapi.json": { "get": { "summary": "OpenAPI spec", "tags": ["Meta"], "responses": { "200": {"description":"This document"} }}}
+  }
+}

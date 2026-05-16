@@ -22,19 +22,20 @@ const hasAccess = (note, userId) => {
 export const getAllNotes = async (req, res, next) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     const skip = (page - 1) * limit;
     const filter = { $or: [{ owner: req.user._id }, { sharedWith: req.user._id }] };
 
-    const [notes, total] = await Promise.all([
+    const [notes, totalNotes] = await Promise.all([
       Note.find(filter).sort({ isPinned: -1, updatedAt: -1 }).skip(skip).limit(limit),
       Note.countDocuments(filter),
     ]);
 
     res.status(200).json({
-      success: true,
-      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
-      data: notes.map(formatNote),
+      currentPage: page,
+      totalPages: Math.ceil(totalNotes / limit) || 1,
+      totalNotes,
+      notes: notes.map(formatNote),
     });
   } catch (error) { next(error); }
 };
