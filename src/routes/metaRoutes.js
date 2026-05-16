@@ -19,12 +19,11 @@ router.get("/about", (req, res) => {
   res.status(200).json({
     name: "Pranjal Kumar Verma",
     email: "pranjalkumarverma18@gmail.com",
-    my_features: {
-      "Note Tagging": "Each note supports up to 10 custom tags for lightweight categorization.",
-      "Note Pinning": "Notes can be pinned and always appear first in GET /notes.",
-      "Full-text Search": "GET /search?q= performs MongoDB text search across title, content and tags.",
-      "Pagination": "GET /notes supports ?page and ?limit with total/totalPages metadata.",
-      "Shared Note Access Control": "Shared users can read but only the owner can update, delete or share."
+    "my features": {
+      "JWT auth": "Secure endpoints with JSON Web Tokens",
+      "Note sharing": "Share notes with other users securely",
+      "Pinned notes": "Pin important notes to keep them at the top",
+      "Search functionality": "MongoDB full-text search across all notes"
     }
   });
 });
