@@ -13,14 +13,14 @@
 
 ## 🌐 Live API
 
-> **Base URL:** `https://notes-app-03fg.onrender.com`
+> **Base URL:** [https://notes-app-03fg.onrender.com](https://notes-app-03fg.onrender.com)
 
 | Endpoint | URL |
 |----------|-----|
-| Health Check | https://notes-app-03fg.onrender.com/ |
-| Swagger Docs | https://notes-app-03fg.onrender.com/api-docs |
-| OpenAPI JSON | https://notes-app-03fg.onrender.com/openapi.json |
-| About | https://notes-app-03fg.onrender.com/about |
+| Health Check | [https://notes-app-03fg.onrender.com/](https://notes-app-03fg.onrender.com/) |
+| Swagger Docs | [https://notes-app-03fg.onrender.com/api-docs](https://notes-app-03fg.onrender.com/api-docs) |
+| OpenAPI JSON | [https://notes-app-03fg.onrender.com/openapi.json](https://notes-app-03fg.onrender.com/openapi.json) |
+| About | [https://notes-app-03fg.onrender.com/about](https://notes-app-03fg.onrender.com/about) |
 
 ---
 
