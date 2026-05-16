@@ -1,6 +1,9 @@
+import mongoose from "mongoose";
 import Note from "../models/Note.js";
 import User from "../models/User.js";
 import { AppError } from "../utils/AppError.js";
+
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 const formatNote = (note) => ({
   _id: note._id,
@@ -42,6 +45,7 @@ export const getAllNotes = async (req, res, next) => {
 
 export const getNoteById = async (req, res, next) => {
   try {
+    if (!isValidId(req.params.id)) return next(new AppError("Invalid note ID.", 400));
     const note = await Note.findById(req.params.id);
     if (!note) return next(new AppError("Note not found.", 404));
     if (!hasAccess(note, req.user._id)) return next(new AppError("You do not have access to this note.", 403));
@@ -62,6 +66,7 @@ export const createNote = async (req, res, next) => {
 
 export const updateNote = async (req, res, next) => {
   try {
+    if (!isValidId(req.params.id)) return next(new AppError("Invalid note ID.", 400));
     const note = await Note.findById(req.params.id);
     if (!note) return next(new AppError("Note not found.", 404));
     if (note.owner.toString() !== req.user._id.toString()) return next(new AppError("You are not authorized to update this note.", 403));
@@ -79,6 +84,7 @@ export const updateNote = async (req, res, next) => {
 
 export const deleteNote = async (req, res, next) => {
   try {
+    if (!isValidId(req.params.id)) return next(new AppError("Invalid note ID.", 400));
     const note = await Note.findById(req.params.id);
     if (!note) return next(new AppError("Note not found.", 404));
     if (note.owner.toString() !== req.user._id.toString()) return next(new AppError("You are not authorized to delete this note.", 403));
@@ -89,6 +95,7 @@ export const deleteNote = async (req, res, next) => {
 
 export const shareNote = async (req, res, next) => {
   try {
+    if (!isValidId(req.params.id)) return next(new AppError("Invalid note ID.", 400));
     const { share_with_email } = req.body;
     if (!share_with_email) return next(new AppError("share_with_email is required.", 400));
 
