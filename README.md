@@ -1,25 +1,26 @@
-# 📝 Notes API
+# 📝 Notes API — Fi Money Engineering Assignment
 
-> A production-ready multi-user Notes backend — built with **Node.js, Express & MongoDB**
+> A **production-ready multi-user Notes backend** built as part of the Fi Money Engineering Internship assignment.
+> Built with **Node.js + Express + MongoDB Atlas**, featuring JWT auth, full CRUD, note sharing, pinning, full-text search, and pagination.
 
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.x-lightgrey)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green)](https://www.mongodb.com/atlas)
+[![Tests](https://img.shields.io/badge/Tests-66%2F66%20passing-brightgreen)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
 ## 🌐 Live API
 
-> **Base URL:** `https://YOUR-APP-NAME.onrender.com`  
-> _(Replace with your actual Render URL after deployment)_
+> **Base URL:** `https://notes-app-03fg.onrender.com`
 
 | Endpoint | URL |
 |----------|-----|
-| Health Check | `https://YOUR-APP-NAME.onrender.com/` |
-| Swagger Docs | `https://YOUR-APP-NAME.onrender.com/api-docs` |
-| OpenAPI JSON | `https://YOUR-APP-NAME.onrender.com/openapi.json` |
-| About | `https://YOUR-APP-NAME.onrender.com/about` |
+| Health Check | https://notes-app-03fg.onrender.com/ |
+| Swagger Docs | https://notes-app-03fg.onrender.com/api-docs |
+| OpenAPI JSON | https://notes-app-03fg.onrender.com/openapi.json |
+| About | https://notes-app-03fg.onrender.com/about |
 
 ---
 
@@ -107,7 +108,6 @@ notes-app/
 │   │   ├── AppError.js           # Custom error class
 │   │   └── generateToken.js      # JWT generation
 │   └── docs/
-│       ├── openapi.json          # Static OpenAPI spec (legacy)
 │       └── swaggerConfig.js      # swagger-jsdoc config
 ├── tests/
 │   └── api.test.sh               # 66 automated API tests
@@ -158,7 +158,6 @@ notes-app/
   "id": "665a1b2c3d4e5f6a7b8c9d0e",
   "title": "My Note",
   "content": "Note body",
-  "owner": "665a1b2c...",
   "isPinned": false,
   "tags": ["work"],
   "created_at": "2026-05-16T10:00:00.000Z",
@@ -166,11 +165,11 @@ notes-app/
 }
 ```
 
-**GET /notes → 200** (flat array)
+**GET /notes → 200** (flat array, pinned first)
 ```json
 [
-  { "id": "...", "title": "Pinned Note", "isPinned": true, ... },
-  { "id": "...", "title": "Regular Note", "isPinned": false, ... }
+  { "id": "...", "title": "Pinned Note", "isPinned": true, "created_at": "...", "updated_at": "..." },
+  { "id": "...", "title": "Regular Note", "isPinned": false, "created_at": "...", "updated_at": "..." }
 ]
 ```
 
@@ -179,19 +178,19 @@ notes-app/
 ## 💡 Custom Features
 
 ### 📌 Note Pinning
-**Endpoint:** `PATCH /notes/:id/pin`  
+**Endpoint:** `PATCH /notes/:id/pin`
 Toggles `isPinned` on each call. Pinned notes always appear at the top of `GET /notes`. Mirrors Google Keep's behavior — users can highlight important notes without reorganizing everything.
 
 ### 🏷️ Note Tagging
-**Field:** `tags: ["work", "urgent"]` in create/update  
+**Field:** `tags: ["work", "urgent"]` on create/update
 Each note supports multiple tags for lightweight categorization. No rigid folder hierarchy — tags are flexible and composable, similar to Gmail labels.
 
 ### 🔍 Full-text Search
-**Endpoint:** `GET /search?q=keyword`  
+**Endpoint:** `GET /search?q=keyword`
 Uses MongoDB `$text` index on `title` and `content`. Results are scoped to the authenticated user's notes only (own + shared). Ranked by text relevance score.
 
 ### 📄 Pagination
-**Endpoint:** `GET /notes?page=1&limit=10`  
+**Endpoint:** `GET /notes?page=1&limit=10`
 Returns `{ currentPage, totalPages, totalNotes, notes[] }` when pagination params are provided. Default `GET /notes` returns the full flat array per spec.
 
 ---
@@ -227,8 +226,8 @@ Copy `.env.example` to `.env` and fill in:
 | `MONGO_URI` | MongoDB Atlas connection string | `mongodb+srv://...` |
 | `JWT_SECRET` | Secret key for signing JWTs | `your-strong-secret` |
 | `JWT_EXPIRES_IN` | Token expiry duration | `7d` |
-| `NODE_ENV` | Environment | `development` |
-| `CLIENT_URL` | Allowed CORS origin | `https://myapp.com` |
+| `NODE_ENV` | Environment | `production` |
+| `CLIENT_URL` | Allowed CORS origin | `*` |
 
 ---
 
@@ -258,38 +257,18 @@ The suite covers:
 
 ## 🚀 Deployment (Render)
 
-### Step-by-step
+Deployed at: **https://notes-app-03fg.onrender.com**
 
-1. **Push to GitHub** — Ensure your code is on the `main` branch.
+### Environment Variables set on Render:
+```
+MONGO_URI      = <MongoDB Atlas connection string>
+JWT_SECRET     = <strong secret key>
+JWT_EXPIRES_IN = 7d
+NODE_ENV       = production
+CLIENT_URL     = *
+```
 
-2. **Create a Web Service on Render**
-   - Go to [render.com](https://render.com) → New → Web Service
-   - Connect your GitHub repository
-
-3. **Configure the service**
-   | Setting | Value |
-   |---------|-------|
-   | Environment | `Node` |
-   | Build Command | `npm install` |
-   | Start Command | `npm start` |
-   | Branch | `main` |
-
-4. **Add Environment Variables** in the Render dashboard:
-   ```
-   MONGO_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/notesdb
-   JWT_SECRET=your-strong-random-secret
-   JWT_EXPIRES_IN=7d
-   NODE_ENV=production
-   CLIENT_URL=*
-   ```
-   > ⚠️ In MongoDB Atlas, go to **Network Access** and add `0.0.0.0/0` to allow Render's dynamic IPs.
-
-5. **Deploy** — Click "Create Web Service". Render will build and deploy automatically.
-
-6. **Verify** — Visit:
-   - `https://YOUR-APP.onrender.com/` → `{"message":"Notes API running"}`
-   - `https://YOUR-APP.onrender.com/about` → Developer info
-   - `https://YOUR-APP.onrender.com/api-docs` → Swagger UI
+> ⚠️ MongoDB Atlas → Network Access → IP `0.0.0.0/0` must be whitelisted.
 
 ---
 
