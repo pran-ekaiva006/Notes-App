@@ -120,7 +120,7 @@ RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes" \
   -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
   -d '{"title":"First Note","content":"Hello world"}')
 assert "Create note → 201" 201 "$RESP" "$(cat /tmp/body.txt)"
-NOTE_ID=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['_id'])" 2>/dev/null)
+NOTE_ID=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['id'])" 2>/dev/null)
 
 # Create more notes for pagination
 for i in $(seq 2 6); do
@@ -141,7 +141,7 @@ RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/notes" \
 assert "GET /notes → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
 
 # Verify pinned note is first
-FIRST_PINNED=$(python3 -c "import json; d=json.load(open('/tmp/body.txt')); print(d['notes'][0]['isPinned'])" 2>/dev/null)
+FIRST_PINNED=$(python3 -c "import json; d=json.load(open('/tmp/body.txt')); print(d[0]['isPinned'])" 2>/dev/null)
 TOTAL=$((TOTAL + 1))
 if [ "$FIRST_PINNED" = "True" ]; then
   echo "  ✅ PASS: Pinned note appears first"
@@ -302,7 +302,7 @@ RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes" \
   -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
   -d '{"title":"Pin Test","content":"Test pinning"}')
 assert "Create note for pin tests → 201" 201 "$RESP" "$(cat /tmp/body.txt)"
-PIN_NOTE_ID=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['_id'])" 2>/dev/null)
+PIN_NOTE_ID=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['id'])" 2>/dev/null)
 
 # Pin (false → true)
 RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PATCH "$BASE_URL/notes/$PIN_NOTE_ID/pin" \
@@ -428,7 +428,7 @@ RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes" \
   -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
   -d '{"title":"To Delete","content":"Will be removed"}')
 assert "Create note for delete tests → 201" 201 "$RESP" "$(cat /tmp/body.txt)"
-DEL_NOTE_ID=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['_id'])" 2>/dev/null)
+DEL_NOTE_ID=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['id'])" 2>/dev/null)
 
 # Share it first to test shared user can't delete
 curl -s -X POST "$BASE_URL/notes/$DEL_NOTE_ID/share" \

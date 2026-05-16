@@ -6,15 +6,15 @@ import { AppError } from "../utils/AppError.js";
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 const formatNote = (note) => ({
-  _id: note._id,
+  id: note._id,
   title: note.title,
   content: note.content,
   owner: note.owner,
   isPinned: note.isPinned,
   sharedWith: note.sharedWith,
   tags: note.tags,
-  createdAt: note.createdAt,
-  updatedAt: note.updatedAt,
+  created_at: note.createdAt,
+  updated_at: note.updatedAt,
 });
 
 const hasAccess = (note, userId) => {
@@ -24,22 +24,30 @@ const hasAccess = (note, userId) => {
 
 export const getAllNotes = async (req, res, next) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
-    const skip = (page - 1) * limit;
     const filter = { $or: [{ owner: req.user._id }, { sharedWith: req.user._id }] };
 
-    const [notes, totalNotes] = await Promise.all([
-      Note.find(filter).sort({ isPinned: -1, updatedAt: -1 }).skip(skip).limit(limit),
-      Note.countDocuments(filter),
-    ]);
+    // If pagination params provided, return paginated response (bonus feature)
+    if (req.query.page || req.query.limit) {
+      const page = Math.max(1, parseInt(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+      const skip = (page - 1) * limit;
 
-    res.status(200).json({
-      currentPage: page,
-      totalPages: Math.ceil(totalNotes / limit) || 1,
-      totalNotes,
-      notes: notes.map(formatNote),
-    });
+      const [notes, totalNotes] = await Promise.all([
+        Note.find(filter).sort({ isPinned: -1, updatedAt: -1 }).skip(skip).limit(limit),
+        Note.countDocuments(filter),
+      ]);
+
+      return res.status(200).json({
+        currentPage: page,
+        totalPages: Math.ceil(totalNotes / limit) || 1,
+        totalNotes,
+        notes: notes.map(formatNote),
+      });
+    }
+
+    // Default: return flat array as per assignment spec
+    const notes = await Note.find(filter).sort({ isPinned: -1, updatedAt: -1 });
+    res.status(200).json(notes.map(formatNote));
   } catch (error) { next(error); }
 };
 
