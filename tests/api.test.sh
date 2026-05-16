@@ -291,6 +291,64 @@ RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/badid
   -d '{"share_with_email":"x@y.com"}')
 assert "Share invalid ID → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
 
+# ── PIN TESTS ────────────────────────────────────────────────────
+echo ""
+echo "═══════════════════════════════════════════"
+echo "  📌  PIN TESTS"
+echo "═══════════════════════════════════════════"
+
+# Create a fresh note for pin tests
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"title":"Pin Test","content":"Test pinning"}')
+assert "Create note for pin tests → 201" 201 "$RESP" "$(cat /tmp/body.txt)"
+PIN_NOTE_ID=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['_id'])" 2>/dev/null)
+
+# Pin (false → true)
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PATCH "$BASE_URL/notes/$PIN_NOTE_ID/pin" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "PATCH pin note → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
+PIN_VAL=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['isPinned'])" 2>/dev/null)
+TOTAL=$((TOTAL + 1))
+if [ "$PIN_VAL" = "True" ]; then
+  echo "  ✅ PASS: isPinned toggled to true"
+  PASS=$((PASS + 1))
+else
+  echo "  ❌ FAIL: Expected True, got $PIN_VAL"
+  FAIL=$((FAIL + 1))
+fi
+
+# Unpin (true → false)
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PATCH "$BASE_URL/notes/$PIN_NOTE_ID/pin" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "PATCH unpin note → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
+PIN_VAL=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['isPinned'])" 2>/dev/null)
+TOTAL=$((TOTAL + 1))
+if [ "$PIN_VAL" = "False" ]; then
+  echo "  ✅ PASS: isPinned toggled to false"
+  PASS=$((PASS + 1))
+else
+  echo "  ❌ FAIL: Expected False, got $PIN_VAL"
+  FAIL=$((FAIL + 1))
+fi
+
+# Shared user cannot pin
+curl -s -X POST "$BASE_URL/notes/$PIN_NOTE_ID/share" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d "{\"share_with_email\":\"$USER2_EMAIL\"}" > /dev/null
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PATCH "$BASE_URL/notes/$PIN_NOTE_ID/pin" \
+  -H "Authorization: Bearer $TOKEN2")
+assert "Shared user pin → 403" 403 "$RESP" "$(cat /tmp/body.txt)"
+
+# Invalid ID
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PATCH "$BASE_URL/notes/badid/pin" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "Pin invalid ID → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
+
+# No auth
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PATCH "$BASE_URL/notes/$PIN_NOTE_ID/pin")
+assert "Pin no auth → 401" 401 "$RESP" "$(cat /tmp/body.txt)"
+
 # ── DELETE TESTS ─────────────────────────────────────────────────
 echo ""
 echo "═══════════════════════════════════════════"

@@ -96,6 +96,20 @@ export const deleteNote = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+export const togglePin = async (req, res, next) => {
+  try {
+    if (!isValidId(req.params.id)) return next(new AppError("Invalid note ID.", 400));
+    const note = await Note.findById(req.params.id);
+    if (!note) return next(new AppError("Note not found.", 404));
+    if (note.owner.toString() !== req.user._id.toString()) return next(new AppError("Only the note owner can pin/unpin.", 403));
+
+    note.isPinned = !note.isPinned;
+    const updated = await note.save();
+    res.status(200).json(formatNote(updated));
+  } catch (error) { next(error); }
+};
+
+
 export const shareNote = async (req, res, next) => {
   try {
     if (!isValidId(req.params.id)) return next(new AppError("Invalid note ID.", 400));
