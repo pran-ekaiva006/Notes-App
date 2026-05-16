@@ -1,20 +1,45 @@
 import express from "express";
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import swaggerSpec from "../docs/swaggerConfig.js";
 
 const router = express.Router();
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/**
+ * @swagger
+ * /openapi.json:
+ *   get:
+ *     summary: Get the OpenAPI 3.0 specification
+ *     tags: [Meta]
+ *     responses:
+ *       200:
+ *         description: The full OpenAPI JSON specification
+ */
 router.get("/openapi.json", (req, res) => {
-  try {
-    const spec = JSON.parse(readFileSync(join(__dirname, "../docs/openapi.json"), "utf-8"));
-    res.status(200).json(spec);
-  } catch {
-    res.status(500).json({ message: "Could not load API spec." });
-  }
+  res.status(200).json(swaggerSpec);
 });
 
+/**
+ * @swagger
+ * /about:
+ *   get:
+ *     summary: About this API and its developer
+ *     tags: [Meta]
+ *     responses:
+ *       200:
+ *         description: API information and feature list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                   example: Pranjal Kumar Verma
+ *                 email:
+ *                   type: string
+ *                   example: pranjalkumarverma18@gmail.com
+ *                 my features:
+ *                   type: object
+ */
 router.get("/about", (req, res) => {
   res.status(200).json({
     name: "Pranjal Kumar Verma",
