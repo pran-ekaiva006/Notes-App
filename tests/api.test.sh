@@ -349,6 +349,74 @@ assert "Pin invalid ID → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
 RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PATCH "$BASE_URL/notes/$PIN_NOTE_ID/pin")
 assert "Pin no auth → 401" 401 "$RESP" "$(cat /tmp/body.txt)"
 
+# ── SEARCH TESTS ─────────────────────────────────────────────────
+echo ""
+echo "═══════════════════════════════════════════"
+echo "  🔍  SEARCH TESTS"
+echo "═══════════════════════════════════════════"
+
+# Create searchable notes
+curl -s -X POST "$BASE_URL/notes" -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"title":"JavaScript Guide","content":"Learn async await"}' > /dev/null
+curl -s -X POST "$BASE_URL/notes" -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"title":"Python Basics","content":"Learn loops and functions"}' > /dev/null
+
+# Search keyword match
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/search?q=JavaScript" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "Search keyword → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
+SEARCH_COUNT=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['count'])" 2>/dev/null)
+TOTAL=$((TOTAL + 1))
+if [ "$SEARCH_COUNT" -ge 1 ]; then
+  echo "  ✅ PASS: Found $SEARCH_COUNT result(s) for 'JavaScript'"
+  PASS=$((PASS + 1))
+else
+  echo "  ❌ FAIL: Expected >=1 results, got $SEARCH_COUNT"
+  FAIL=$((FAIL + 1))
+fi
+
+# Search no results
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/search?q=xyznonexistent" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "Search no results → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
+SEARCH_COUNT=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['count'])" 2>/dev/null)
+TOTAL=$((TOTAL + 1))
+if [ "$SEARCH_COUNT" = "0" ]; then
+  echo "  ✅ PASS: Zero results for nonexistent keyword"
+  PASS=$((PASS + 1))
+else
+  echo "  ❌ FAIL: Expected 0 results, got $SEARCH_COUNT"
+  FAIL=$((FAIL + 1))
+fi
+
+# Empty query
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/search?q=" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "Search empty query → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
+
+# Whitespace query
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/search?q=%20%20" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "Search whitespace → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
+
+# No auth
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/search?q=test")
+assert "Search no auth → 401" 401 "$RESP" "$(cat /tmp/body.txt)"
+
+# User 2 can't see User 1's notes
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/search?q=JavaScript" \
+  -H "Authorization: Bearer $TOKEN2")
+assert "Search user isolation → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
+SEARCH_COUNT=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['count'])" 2>/dev/null)
+TOTAL=$((TOTAL + 1))
+if [ "$SEARCH_COUNT" = "0" ]; then
+  echo "  ✅ PASS: User 2 can't see User 1's notes"
+  PASS=$((PASS + 1))
+else
+  echo "  ❌ FAIL: Expected 0 results for User 2, got $SEARCH_COUNT"
+  FAIL=$((FAIL + 1))
+fi
+
 # ── DELETE TESTS ─────────────────────────────────────────────────
 echo ""
 echo "═══════════════════════════════════════════"
