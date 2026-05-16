@@ -115,7 +115,7 @@ export const shareNote = async (req, res, next) => {
 
     note.sharedWith.push(targetUser._id);
     await note.save();
-    res.status(200).json({ success: true, message: `Note successfully shared with ${share_with_email}.` });
+    res.status(200).json({ message: "Note shared successfully" });
   } catch (error) { next(error); }
 };
 

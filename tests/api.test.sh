@@ -222,16 +222,74 @@ RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PUT "$BASE_URL/notes/665a1b
   -d '{"title":"X"}')
 assert "PUT non-existent → 404" 404 "$RESP" "$(cat /tmp/body.txt)"
 
-# Share note
+# ── SHARE TESTS ──────────────────────────────────────────────────
+echo ""
+echo "═══════════════════════════════════════════"
+echo "  🔗  SHARE TESTS"
+echo "═══════════════════════════════════════════"
+
+# Share note — success
 RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/$NOTE_ID/share" \
   -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
   -d "{\"share_with_email\":\"$USER2_EMAIL\"}")
 assert "Share note → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
 
-# After sharing — User 2 can read
+# Verify message
+SHARE_MSG=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['message'])" 2>/dev/null)
+TOTAL=$((TOTAL + 1))
+if [ "$SHARE_MSG" = "Note shared successfully" ]; then
+  echo "  ✅ PASS: Correct share message"
+  PASS=$((PASS + 1))
+else
+  echo "  ❌ FAIL: Expected 'Note shared successfully', got '$SHARE_MSG'"
+  FAIL=$((FAIL + 1))
+fi
+
+# Shared user can read
 RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/notes/$NOTE_ID" \
   -H "Authorization: Bearer $TOKEN2")
 assert "Shared user can read → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
+
+# Duplicate share
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/$NOTE_ID/share" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d "{\"share_with_email\":\"$USER2_EMAIL\"}")
+assert "Duplicate share → 409" 409 "$RESP" "$(cat /tmp/body.txt)"
+
+# Self share
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/$NOTE_ID/share" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d "{\"share_with_email\":\"$USER1_EMAIL\"}")
+assert "Self share → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
+
+# Unknown email
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/$NOTE_ID/share" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"share_with_email":"nobody@nowhere.com"}')
+assert "Share unknown email → 404" 404 "$RESP" "$(cat /tmp/body.txt)"
+
+# Non-owner tries to share
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/$NOTE_ID/share" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN2" \
+  -d "{\"share_with_email\":\"$USER1_EMAIL\"}")
+assert "Non-owner share → 403" 403 "$RESP" "$(cat /tmp/body.txt)"
+
+# Missing share_with_email field
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/$NOTE_ID/share" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{}')
+assert "Share missing email → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
+
+# No auth
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/$NOTE_ID/share" \
+  -H "Content-Type: application/json" -d '{"share_with_email":"x@y.com"}')
+assert "Share no auth → 401" 401 "$RESP" "$(cat /tmp/body.txt)"
+
+# Invalid note ID
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/badid/share" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"share_with_email":"x@y.com"}')
+assert "Share invalid ID → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
 
 # ── DELETE TESTS ─────────────────────────────────────────────────
 echo ""
