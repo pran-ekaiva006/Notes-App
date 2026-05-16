@@ -72,13 +72,16 @@ export const updateNote = async (req, res, next) => {
     if (note.owner.toString() !== req.user._id.toString()) return next(new AppError("You are not authorized to update this note.", 403));
 
     const { title, content, tags, isPinned } = req.body;
+    if (title !== undefined && (typeof title !== "string" || !title.trim())) return next(new AppError("Title cannot be empty.", 400));
+    if (content !== undefined && (typeof content !== "string" || !content.trim())) return next(new AppError("Content cannot be empty.", 400));
+
     if (title !== undefined) note.title = title;
     if (content !== undefined) note.content = content;
     if (tags !== undefined) note.tags = tags;
     if (isPinned !== undefined) note.isPinned = isPinned;
 
     const updated = await note.save();
-    res.status(200).json({ success: true, data: formatNote(updated) });
+    res.status(200).json(formatNote(updated));
   } catch (error) { next(error); }
 };
 

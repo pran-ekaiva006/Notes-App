@@ -181,11 +181,46 @@ RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PUT "$BASE_URL/notes/$NOTE_
   -d '{"title":"Updated Title","content":"Updated content"}')
 assert "PUT /notes/:id → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
 
+# Verify updated data is returned
+UPDATED_TITLE=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['title'])" 2>/dev/null)
+TOTAL=$((TOTAL + 1))
+if [ "$UPDATED_TITLE" = "Updated Title" ]; then
+  echo "  ✅ PASS: Updated title returned correctly"
+  PASS=$((PASS + 1))
+else
+  echo "  ❌ FAIL: Expected 'Updated Title', got '$UPDATED_TITLE'"
+  FAIL=$((FAIL + 1))
+fi
+
 # Update — other user can't update
 RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PUT "$BASE_URL/notes/$NOTE_ID" \
   -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN2" \
   -d '{"title":"Hacked"}')
 assert "PUT /notes/:id other user → 403" 403 "$RESP" "$(cat /tmp/body.txt)"
+
+# Update — empty title
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PUT "$BASE_URL/notes/$NOTE_ID" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"title":"   "}')
+assert "PUT empty title → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
+
+# Update — empty content
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PUT "$BASE_URL/notes/$NOTE_ID" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"content":""}')
+assert "PUT empty content → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
+
+# Update — invalid note ID
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PUT "$BASE_URL/notes/badid" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"title":"X"}')
+assert "PUT invalid ID → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
+
+# Update — non-existent note
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X PUT "$BASE_URL/notes/665a1b2c3d4e5f6789abcdef" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"title":"X"}')
+assert "PUT non-existent → 404" 404 "$RESP" "$(cat /tmp/body.txt)"
 
 # Share note
 RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes/$NOTE_ID/share" \
