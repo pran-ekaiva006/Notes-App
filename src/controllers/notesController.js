@@ -3,14 +3,15 @@ import User from "../models/User.js";
 import { AppError } from "../utils/AppError.js";
 
 const formatNote = (note) => ({
-  id: note._id,
+  _id: note._id,
   title: note.title,
   content: note.content,
-  tags: note.tags,
+  owner: note.owner,
   isPinned: note.isPinned,
   sharedWith: note.sharedWith,
-  created_at: note.createdAt,
-  updated_at: note.updatedAt,
+  tags: note.tags,
+  createdAt: note.createdAt,
+  updatedAt: note.updatedAt,
 });
 
 const hasAccess = (note, userId) => {
@@ -43,16 +44,18 @@ export const getNoteById = async (req, res, next) => {
     const note = await Note.findById(req.params.id);
     if (!note) return next(new AppError("Note not found.", 404));
     if (!hasAccess(note, req.user._id)) return next(new AppError("You do not have access to this note.", 403));
-    res.status(200).json({ success: true, data: formatNote(note) });
+    res.status(200).json(formatNote(note));
   } catch (error) { next(error); }
 };
 
 export const createNote = async (req, res, next) => {
   try {
     const { title, content, tags, isPinned } = req.body;
-    if (!title || !content) return next(new AppError("Title and content are required.", 400));
+    if (!title || !content || (typeof title === "string" && !title.trim()) || (typeof content === "string" && !content.trim())) {
+      return next(new AppError("Title and content are required.", 400));
+    }
     const note = await Note.create({ title, content, tags: tags || [], isPinned: isPinned || false, owner: req.user._id });
-    res.status(201).json({ success: true, data: formatNote(note) });
+    res.status(201).json(formatNote(note));
   } catch (error) { next(error); }
 };
 
