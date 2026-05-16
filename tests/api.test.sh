@@ -233,25 +233,57 @@ RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/notes/$NOTE_ID" \
   -H "Authorization: Bearer $TOKEN2")
 assert "Shared user can read → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
 
-# Delete — other user can't delete
-RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X DELETE "$BASE_URL/notes/$NOTE_ID" \
+# ── DELETE TESTS ─────────────────────────────────────────────────
+echo ""
+echo "═══════════════════════════════════════════"
+echo "  🗑️   DELETE TESTS"
+echo "═══════════════════════════════════════════"
+
+# Create a fresh note for delete tests
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X POST "$BASE_URL/notes" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d '{"title":"To Delete","content":"Will be removed"}')
+assert "Create note for delete tests → 201" 201 "$RESP" "$(cat /tmp/body.txt)"
+DEL_NOTE_ID=$(python3 -c "import json; print(json.load(open('/tmp/body.txt'))['_id'])" 2>/dev/null)
+
+# Share it first to test shared user can't delete
+curl -s -X POST "$BASE_URL/notes/$DEL_NOTE_ID/share" \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN1" \
+  -d "{\"share_with_email\":\"$USER2_EMAIL\"}" > /dev/null
+
+# Delete — shared user cannot delete
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X DELETE "$BASE_URL/notes/$DEL_NOTE_ID" \
   -H "Authorization: Bearer $TOKEN2")
-assert "DELETE other user → 403" 403 "$RESP" "$(cat /tmp/body.txt)"
+assert "DELETE shared user → 403" 403 "$RESP" "$(cat /tmp/body.txt)"
 
-# Delete — owner can delete
-RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X DELETE "$BASE_URL/notes/$NOTE_ID" \
+# Delete — no auth
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X DELETE "$BASE_URL/notes/$DEL_NOTE_ID")
+assert "DELETE no auth → 401" 401 "$RESP" "$(cat /tmp/body.txt)"
+
+# Delete — invalid ID
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X DELETE "$BASE_URL/notes/invalidid" \
   -H "Authorization: Bearer $TOKEN1")
-assert "DELETE /notes/:id → 204" 204 "$RESP" ""
+assert "DELETE invalid ID → 400" 400 "$RESP" "$(cat /tmp/body.txt)"
 
-# GET deleted note
-RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/notes/$NOTE_ID" \
+# Delete — non-existent note
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X DELETE "$BASE_URL/notes/665a1b2c3d4e5f6789abcdef" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "DELETE non-existent → 404" 404 "$RESP" "$(cat /tmp/body.txt)"
+
+# Delete — owner succeeds
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X DELETE "$BASE_URL/notes/$DEL_NOTE_ID" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "DELETE owner → 204" 204 "$RESP" ""
+
+# Verify deleted note returns 404
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/notes/$DEL_NOTE_ID" \
   -H "Authorization: Bearer $TOKEN1")
 assert "GET deleted note → 404" 404 "$RESP" "$(cat /tmp/body.txt)"
 
-# Empty notes for user 2
-RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/notes" \
-  -H "Authorization: Bearer $TOKEN2")
-assert "User 2 GET /notes → 200" 200 "$RESP" "$(cat /tmp/body.txt)"
+# Double-delete returns 404
+RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" -X DELETE "$BASE_URL/notes/$DEL_NOTE_ID" \
+  -H "Authorization: Bearer $TOKEN1")
+assert "DELETE already deleted → 404" 404 "$RESP" "$(cat /tmp/body.txt)"
 
 # ── META TESTS ───────────────────────────────────────────────────
 echo ""
