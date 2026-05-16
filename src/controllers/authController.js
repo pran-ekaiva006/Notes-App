@@ -5,8 +5,6 @@ import { AppError } from "../utils/AppError.js";
 export const registerUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return next(new AppError("Email and password are required.", 400));
-    if (password.length < 6) return next(new AppError("Password must be at least 6 characters.", 400));
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) return next(new AppError("An account with this email already exists.", 400));
@@ -21,7 +19,6 @@ export const registerUser = async (req, res, next) => {
 export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return next(new AppError("Email and password are required.", 400));
 
     const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
     if (!user || !(await user.comparePassword(password))) {

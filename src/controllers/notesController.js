@@ -56,9 +56,6 @@ export const getNoteById = async (req, res, next) => {
 export const createNote = async (req, res, next) => {
   try {
     const { title, content, tags, isPinned } = req.body;
-    if (!title || !content || (typeof title === "string" && !title.trim()) || (typeof content === "string" && !content.trim())) {
-      return next(new AppError("Title and content are required.", 400));
-    }
     const note = await Note.create({ title, content, tags: tags || [], isPinned: isPinned || false, owner: req.user._id });
     res.status(201).json(formatNote(note));
   } catch (error) { next(error); }
@@ -72,8 +69,6 @@ export const updateNote = async (req, res, next) => {
     if (note.owner.toString() !== req.user._id.toString()) return next(new AppError("You are not authorized to update this note.", 403));
 
     const { title, content, tags, isPinned } = req.body;
-    if (title !== undefined && (typeof title !== "string" || !title.trim())) return next(new AppError("Title cannot be empty.", 400));
-    if (content !== undefined && (typeof content !== "string" || !content.trim())) return next(new AppError("Content cannot be empty.", 400));
 
     if (title !== undefined) note.title = title;
     if (content !== undefined) note.content = content;
@@ -114,7 +109,6 @@ export const shareNote = async (req, res, next) => {
   try {
     if (!isValidId(req.params.id)) return next(new AppError("Invalid note ID.", 400));
     const { share_with_email } = req.body;
-    if (!share_with_email) return next(new AppError("share_with_email is required.", 400));
 
     const note = await Note.findById(req.params.id);
     if (!note) return next(new AppError("Note not found.", 404));
@@ -136,7 +130,6 @@ export const shareNote = async (req, res, next) => {
 export const searchNotes = async (req, res, next) => {
   try {
     const { q } = req.query;
-    if (!q || q.trim().length === 0) return next(new AppError("Search query 'q' is required.", 400));
 
     const notes = await Note.find({
       $and: [
