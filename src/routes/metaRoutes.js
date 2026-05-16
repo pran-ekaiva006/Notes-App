@@ -45,10 +45,10 @@ router.get("/about", (req, res) => {
     name: "Pranjal Kumar Verma",
     email: "pranjalkumarverma18@gmail.com",
     "my features": {
-      "JWT auth": "Secure endpoints with JSON Web Tokens",
-      "Note sharing": "Share notes with other users securely",
-      "Pinned notes": "Pin important notes to keep them at the top",
-      "Search functionality": "MongoDB full-text search across all notes"
+      "Note Pinning": "Toggle pin/unpin via PATCH /notes/:id/pin. Pinned notes always appear first in GET /notes. Chose this because it mirrors real-world note apps like Google Keep where users need to prioritize important notes.",
+      "Note Tagging": "Each note supports a tags array for lightweight categorization without requiring folders. Chose this because tags offer flexible, non-hierarchical organization that scales better than rigid folder structures.",
+      "Full-text Search": "GET /search?q=keyword performs MongoDB text-indexed search across title and content, scoped to the authenticated user's notes. Chose this because fast search is essential for any notes app with growing data.",
+      "Pagination": "GET /notes?page=1&limit=10 returns paginated results with totalPages metadata. Chose this to ensure the API scales gracefully as users accumulate hundreds of notes."
     }
   });
 });
