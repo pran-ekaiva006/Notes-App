@@ -1,6 +1,6 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
-import { getAllNotes, getNoteById, createNote, updateNote, deleteNote, shareNote, togglePin } from "../controllers/notesController.js";
+import { getAllNotes, getNoteById, createNote, updateNote, deleteNote, shareNote, togglePin, getNoteHistory, restoreNoteVersion } from "../controllers/notesController.js";
 
 import { validateRequest } from "../middleware/validateRequest.js";
 import { createNoteValidation, updateNoteValidation, shareNoteValidation } from "../validators/noteValidators.js";
@@ -269,5 +269,99 @@ router.post("/:id/share", shareNoteValidation, validateRequest, shareNote);
  *         description: Note not found
  */
 router.patch("/:id/pin", togglePin);
+
+/**
+ * @swagger
+ * /notes/{id}/history:
+ *   get:
+ *     summary: Get version history of a note (owner only)
+ *     description: Returns all saved snapshots of a note's previous content, newest first. A snapshot is created automatically every time a note's title or content is updated.
+ *     tags: [Version History]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Version history list (newest first)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 note_id:
+ *                   type: string
+ *                 total_versions:
+ *                   type: integer
+ *                   example: 3
+ *                 history:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       version:
+ *                         type: integer
+ *                         example: 2
+ *                       title:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       saved_at:
+ *                         type: string
+ *                         format: date-time
+ *       403:
+ *         description: Only the note owner can view history
+ *       404:
+ *         description: Note not found
+ */
+router.get("/:id/history", getNoteHistory);
+
+/**
+ * @swagger
+ * /notes/{id}/restore/{version}:
+ *   post:
+ *     summary: Restore a note to a previous version (owner only)
+ *     description: Restores the note's title and content to the specified version number. The current state is automatically saved as a new version before restoring.
+ *     tags: [Version History]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: version
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: Version number to restore (from GET /notes/:id/history)
+ *     responses:
+ *       200:
+ *         description: Note restored to specified version
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Restored to version 1
+ *                 note:
+ *                   $ref: '#/components/schemas/Note'
+ *       400:
+ *         description: Invalid note ID or version number
+ *       403:
+ *         description: Only the note owner can restore versions
+ *       404:
+ *         description: Note not found
+ */
+router.post("/:id/restore/:version", restoreNoteVersion);
 
 export default router;

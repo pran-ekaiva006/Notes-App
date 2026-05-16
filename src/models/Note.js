@@ -28,6 +28,13 @@ const noteSchema = new mongoose.Schema(
       },
     },
     isPinned: { type: Boolean, default: false },
+    versions: [
+      {
+        title: { type: String },
+        content: { type: String },
+        savedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

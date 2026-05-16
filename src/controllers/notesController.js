@@ -78,6 +78,12 @@ export const updateNote = async (req, res, next) => {
 
     const { title, content, tags, isPinned } = req.body;
 
+    // 📸 Snapshot current state before overwriting (version history)
+    if ((title !== undefined && title !== note.title) || (content !== undefined && content !== note.content)) {
+      note.versions.push({ title: note.title, content: note.content, savedAt: new Date() });
+      if (note.versions.length > 10) note.versions.shift(); // keep max 10 versions
+    }
+
     if (title !== undefined) note.title = title;
     if (content !== undefined) note.content = content;
     if (tags !== undefined) note.tags = tags;
@@ -85,6 +91,52 @@ export const updateNote = async (req, res, next) => {
 
     const updated = await note.save();
     res.status(200).json(formatNote(updated));
+  } catch (error) { next(error); }
+};
+
+// GET /notes/:id/history — list version history (owner only)
+export const getNoteHistory = async (req, res, next) => {
+  try {
+    if (!isValidId(req.params.id)) return next(new AppError("Invalid note ID.", 400));
+    const note = await Note.findById(req.params.id);
+    if (!note) return next(new AppError("Note not found.", 404));
+    if (note.owner.toString() !== req.user._id.toString()) return next(new AppError("Only the note owner can view history.", 403));
+
+    const history = note.versions.map((v, index) => ({
+      version: index + 1,
+      title: v.title,
+      content: v.content,
+      saved_at: v.savedAt,
+    })).reverse(); // newest first
+
+    res.status(200).json({ note_id: req.params.id, total_versions: history.length, history });
+  } catch (error) { next(error); }
+};
+
+// POST /notes/:id/restore/:version — restore a past version (owner only)
+export const restoreNoteVersion = async (req, res, next) => {
+  try {
+    if (!isValidId(req.params.id)) return next(new AppError("Invalid note ID.", 400));
+    const note = await Note.findById(req.params.id);
+    if (!note) return next(new AppError("Note not found.", 404));
+    if (note.owner.toString() !== req.user._id.toString()) return next(new AppError("Only the note owner can restore versions.", 403));
+
+    const versionIndex = parseInt(req.params.version) - 1;
+    if (isNaN(versionIndex) || versionIndex < 0 || versionIndex >= note.versions.length) {
+      return next(new AppError(`Invalid version number. This note has ${note.versions.length} version(s).`, 400));
+    }
+
+    const target = note.versions[versionIndex];
+
+    // Snapshot current state before restore
+    note.versions.push({ title: note.title, content: note.content, savedAt: new Date() });
+    if (note.versions.length > 10) note.versions.shift();
+
+    note.title = target.title;
+    note.content = target.content;
+
+    const restored = await note.save();
+    res.status(200).json({ message: `Restored to version ${req.params.version}`, note: formatNote(restored) });
   } catch (error) { next(error); }
 };
 

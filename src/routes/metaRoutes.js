@@ -45,10 +45,10 @@ router.get("/about", (req, res) => {
     name: "Pranjal Kumar Verma",
     email: "pranjalkumarverma18@gmail.com",
     "my features": {
-      "Note Pinning": "Toggle pin/unpin via PATCH /notes/:id/pin. Pinned notes always appear first in GET /notes. Chose this because it mirrors real-world note apps like Google Keep where users need to prioritize important notes.",
-      "Note Tagging": "Each note supports a tags array for lightweight categorization without requiring folders. Chose this because tags offer flexible, non-hierarchical organization that scales better than rigid folder structures.",
-      "Full-text Search": "GET /search?q=keyword performs MongoDB text-indexed search across title and content, scoped to the authenticated user's notes. Chose this because fast search is essential for any notes app with growing data.",
-      "Pagination": "GET /notes?page=1&limit=10 returns paginated results with totalPages metadata. Chose this to ensure the API scales gracefully as users accumulate hundreds of notes."
+      "Note Version History": "Every PUT /notes/:id automatically snapshots the previous title and content. GET /notes/:id/history returns a full chronological history (newest first, max 10 versions). POST /notes/:id/restore/:version rolls back to any past state — and saves the current state first, so no work is ever truly lost. Chose this because it solves a real, painful user problem: accidentally overwriting or deleting important content with no way to recover it.",
+      "Note Pinning": "PATCH /notes/:id/pin toggles isPinned. Pinned notes always appear first in GET /notes. Chose this because users need a fast way to keep critical notes visible without reorganizing their entire list.",
+      "Full-text Search": "GET /search?q=keyword uses MongoDB $text indexes on title and content, scoped to the authenticated user's own notes. Results are ranked by relevance score. Chose this because search is essential UX for any notes app with growing data.",
+      "Pagination": "GET /notes?page=1&limit=10 returns paginated results with currentPage, totalPages, and totalNotes metadata. Chose this to ensure the API stays performant at scale rather than returning unbounded arrays."
     }
   });
 });
